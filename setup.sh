@@ -37,6 +37,7 @@ FLOOD_ZIP_URL="https://github.com/johman10/flood-for-transmission/releases/lates
 
 if [ ! -f "$FLOOD_DIR/index.html" ]; then
     echo "[..] Downloading Flood for Transmission UI..."
+    mkdir -p "$FLOOD_DIR"
     mkdir -p ./flood-ui-tmp
     if wget --tries=3 --timeout=30 -q -O ./flood-ui-tmp/flood-ui.zip "$FLOOD_ZIP_URL"; then
         unzip -qo ./flood-ui-tmp/flood-ui.zip -d ./flood-ui-tmp

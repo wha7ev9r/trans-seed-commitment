@@ -23,6 +23,6 @@ USER quard
 
 EXPOSE 9092
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9092/api/status', timeout=5)" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9092/healthz', timeout=5)" || exit 1
 
 ENTRYPOINT ["python", "guard.py"]

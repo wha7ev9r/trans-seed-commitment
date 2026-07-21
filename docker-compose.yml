@@ -27,10 +27,16 @@ services:
       # 9091 不直接公网暴露，仅本机，由 quota-guard 反代
       - "127.0.0.1:9091:9091"
       # P2P peer 端口必须公网（tcp + udp），否则无法做种
-      - "${PEER_PORT:-51413}:51413"
-      - "${PEER_PORT:-51413}:51413/udp"
+      - "51413:51413"
+      - "51413:51413/udp"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9091/transmission/rpc"]
+      # Transmission RPC returns 409 when the session id is missing; that still
+      # proves the daemon and RPC endpoint are alive.
+      test:
+        [
+          "CMD-SHELL",
+          'code=$(curl -s -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$code" = 200 ] || [ "$code" = 409 ]',
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -77,7 +83,7 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9092/api/status', timeout=5)",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9092/healthz', timeout=5)",
         ]
       interval: 30s
       timeout: 10s

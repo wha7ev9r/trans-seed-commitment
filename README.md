@@ -166,20 +166,20 @@ ufw limit 51413/udp
 
 ## 配置参考（.env）
 
-| 变量                  | 默认值                  | 说明                               |
-| --------------------- | ----------------------- | ---------------------------------- |
-| `TZ`                  | `Asia/Shanghai`         | 时区                               |
-| `TRANSMISSION_USER`   | `admin`                 | Transmission RPC 用户名            |
-| `TRANSMISSION_PASS`   | _(必须修改)_            | Transmission RPC 密码（≥20位推荐） |
-| `QUOTA_USER`          | `seed`                  | quota-guard 面板 Basic Auth 用户名 |
-| `QUOTA_PASS`          | _(必须修改)_            | quota-guard 面板 Basic Auth 密码   |
-| `QUOTA_GUARD_PORT`    | `9092`                  | quota-guard 绑定端口（本地）       |
-| `PEER_PORT`           | `51413`                 | P2P 端口（必须公网 tcp+udp）       |
-| `MONTHLY_QUOTA_BYTES` | `1099511627776`（1 TB） | 月度配额（字节）                   |
-| `PUID` / `PGID`       | `1000`                  | 容器进程 UID/GID                   |
-| `VNSTAT_INTERFACE`    | `eth0`                  | 宿主机主网卡名（`ip link` 查看）   |
-| `SPEED_LIMIT_UP_KB`   | `10240`（10MB/s）       | 全局上传限速（KB/s，0=不限）       |
-| `SPEED_LIMIT_DOWN_KB` | `0`                     | 全局下载限速（0=不限）             |
+| 变量                  | 默认值                  | 说明                                                                              |
+| --------------------- | ----------------------- | --------------------------------------------------------------------------------- |
+| `TZ`                  | `Asia/Shanghai`         | 时区                                                                              |
+| `TRANSMISSION_USER`   | `admin`                 | Transmission RPC 用户名                                                           |
+| `TRANSMISSION_PASS`   | _(必须修改)_            | Transmission RPC 密码（≥20位推荐）                                                |
+| `QUOTA_USER`          | `seed`                  | quota-guard 面板 Basic Auth 用户名                                                |
+| `QUOTA_PASS`          | _(必须修改)_            | quota-guard 面板 Basic Auth 密码                                                  |
+| `QUOTA_GUARD_PORT`    | `9092`                  | quota-guard 绑定端口（本地）                                                      |
+| P2P 端口              | `51413`                 | 固定值；如需改端口，需同步改 `docker-compose.yml` 和 `transmission/settings.json` |
+| `MONTHLY_QUOTA_BYTES` | `1099511627776`（1 TB） | 月度配额（字节）                                                                  |
+| `PUID` / `PGID`       | `1000`                  | 容器进程 UID/GID                                                                  |
+| `VNSTAT_INTERFACE`    | `eth0`                  | 宿主机主网卡名（`ip link` 查看）                                                  |
+| 上传限速              | `10240`（10MB/s）       | 写在 `transmission/settings.json` 的 `speed-limit-up`                             |
+| 下载限速              | 不启用                  | 写在 `transmission/settings.json` 的 `speed-limit-down-enabled=false`             |
 
 ---
 

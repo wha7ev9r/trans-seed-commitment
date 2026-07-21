@@ -59,6 +59,7 @@ def _this_month_key() -> str:
 def load_state() -> dict:
     default = {
         "month_key": _this_month_key(),
+        "day_key": _now().strftime("%Y-%m-%d"),
         "monthly_uploaded_bytes": 0,
         "today_uploaded_bytes": 0,
         "cumulative_uploaded_bytes": 0,  # Transmission session start
@@ -69,12 +70,10 @@ def load_state() -> dict:
     try:
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             saved = json.load(f)
-        for key in default:
-            default.setdefault(key, saved.get(key, default[key]))
-        default["quota_bytes"] = saved.get("quota_bytes", MONTHLY_QUOTA_BYTES)
-        default["month_key"] = saved.get("month_key", _this_month_key())
-        if not isinstance(default["history"], OrderedDict):
-            default["history"] = OrderedDict()
+        for key, fallback in default.items():
+            default[key] = saved.get(key, fallback)
+        history = default.get("history")
+        default["history"] = OrderedDict(history if isinstance(history, dict) else {})
     except (FileNotFoundError, json.JSONDecodeError):
         pass
     return default
@@ -207,6 +206,11 @@ def check_quota() -> dict:
         state["is_paused"] = False
         state["cumulative_uploaded_bytes"] = 0
 
+    # Day rollover keeps the daily chart accurate across a long-running daemon.
+    if state.get("day_key") != today_str:
+        state["day_key"] = today_str
+        state["today_uploaded_bytes"] = 0
+
     stats = get_session_stats()
     if stats is None:
         return {"status": "rpc_error", "error": _last_rpc_error}
@@ -225,7 +229,7 @@ def check_quota() -> dict:
     state["cumulative_uploaded_bytes"] = current_total
 
     # Update daily history
-    if today_str not in state.setdefault("history", OrderedDict()):
+    if today_str not in state["history"]:
         state["history"][today_str] = {"uploaded": 0, "sessions": 0}
     state["history"][today_str]["uploaded"] = state["today_uploaded_bytes"]
     state["history"][today_str]["sessions"] = len(get_torrents())
@@ -326,7 +330,7 @@ app.config["JSON_AS_ASCII"] = False
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 # ======================================================================
-# Basic Auth (protects / and /api/; excludes /api/status for healthcheck)
+# Basic Auth (protects every path except /healthz for Docker healthcheck)
 # ======================================================================
 
 
@@ -344,30 +348,26 @@ def check_basic_auth() -> bool:
 
 @app.before_request
 def _auth_middleware():
-    # Allow healthcheck and static assets without auth
-    if request.path == "/api/status":
+    # Docker healthcheck only confirms the web server is alive; all data/control
+    # routes still require Basic Auth.
+    if request.path == "/healthz":
         return None
-    if request.path.endswith((".css", ".js", ".png", ".svg", ".ico", ".woff2", ".map")):
-        return None
-    # Transmission RPC has its own auth; pass through
-    if request.path.startswith("/transmission/"):
-        return None
-    # Flood UI pages are proxied; pass through (Transmission handles its own auth)
-    if request.path.startswith("/torrents/"):
-        return None
-    # Protect our console and API
-    if request.path == "/" or request.path.startswith("/api/"):
-        if not check_basic_auth():
-            return Response(
-                "Authentication required",
-                401,
-                {"WWW-Authenticate": 'Basic realm="QuotaGuard"'},
-            )
+    if not check_basic_auth():
+        return Response(
+            "Authentication required",
+            401,
+            {"WWW-Authenticate": 'Basic realm="QuotaGuard"'},
+        )
 
 
 # ======================================================================
 # API routes
 # ======================================================================
+@app.route("/healthz")
+def healthz():
+    return jsonify({"ok": True})
+
+
 @app.route("/api/status")
 def api_status():
     state = load_state()
@@ -641,6 +641,7 @@ body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
 const TB = 1099511627776;
 const GB = 1073741824;
 const MB = 1048576;
+let lastStatus = null;
 
 function fmtBytes(b) {
   if (b == null || b < 0) return '--';
@@ -662,6 +663,7 @@ async function refresh() {
     const r = await fetch('/api/status');
     if (r.status === 401) { location.reload(); return; }
     const d = await r.json();
+    lastStatus = d;
     document.getElementById('vUsed').textContent = fmtBytes(d.monthly_uploaded_bytes);
     document.getElementById('vQuota').textContent = fmtBytes(d.quota_bytes);
     document.getElementById('vActive').textContent = d.active_torrents + '/' + d.total_torrents;
@@ -724,8 +726,7 @@ function toggleChart() {
 }
 
 function editQuota() {
-  const state = JSON.parse(document.getElementById('vQuota').dataset.state||'{}');
-  const currentTB = (state.quota_bytes || 0) / TB;
+  const currentTB = ((lastStatus && lastStatus.quota_bytes) || 0) / TB;
   document.getElementById('inpQuota').value = currentTB.toFixed(1);
   document.getElementById('editBlock').classList.remove('hidden');
 }

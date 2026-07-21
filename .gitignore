@@ -1,0 +1,35 @@
+# 运行时数据
+/downloads/
+/watch/
+/config/
+/transmission/config/
+/flood-ui/
+/quota-guard/state/
+/vnstat/
+
+# 环境变量（含密码，绝不入库）
+.env
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+
+# 编辑器
+.vscode/
+.idea/
+*.code-workspace
+
+# 临时
+*.tmp
+*.bak
+workplace/
+
+# Python
+__pycache__/
+*.pyc
+
+# 校验缓存
+.ruff_cache/

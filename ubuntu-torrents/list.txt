@@ -1,0 +1,43 @@
+# ============================================================
+# Ubuntu 官方 .torrent 直链清单
+# 数据源：https://releases.ubuntu.com/  +  http://cdimage.ubuntu.com/
+# 每行一个 .torrent URL，# 开头为注释
+# fetch.sh 会用 wget 下载到 ../watch/ 目录，Transmission 自动加载做种
+# ============================================================
+
+# ===== 当前 LTS（推荐主力做种，长期有效） =====
+# Ubuntu 24.04.x LTS (Noble Numbat) - 5 年支持
+https://releases.ubuntu.com/noble/ubuntu-24.04.4-desktop-amd64.iso.torrent
+https://releases.ubuntu.com/noble/ubuntu-24.04.4-live-server-amd64.iso.torrent
+https://releases.ubuntu.com/noble/ubuntu-24.04.4_legacy-server-amd64.iso.torrent
+
+# Ubuntu 22.04.x LTS (Jammy Jellyfish) - 5 年支持
+https://releases.ubuntu.com/jammy/ubuntu-22.04.5-desktop-amd64.iso.torrent
+https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso.torrent
+
+# Ubuntu 20.04.x LTS (Focal Fossa) - ESM 期内仍可做种
+https://releases.ubuntu.com/focal/ubuntu-20.04.6-desktop-amd64.iso.torrent
+https://releases.ubuntu.com/focal/ubuntu-20.04.6-live-server-amd64.iso.torrent
+
+# ===== 当前 Interim（9 个月支持，新版本出来后可去掉旧的） =====
+# Ubuntu 25.10 (Questing Quokka)
+https://releases.ubuntu.com/questing/ubuntu-25.10-desktop-amd64.iso.torrent
+https://releases.ubuntu.com/questing/ubuntu-25.10-live-server-amd64.iso.torrent
+
+# ===== 官方 Flavors（可选，带宽充足再开） =====
+# Kubuntu
+# https://cdimage.ubuntu.com/kubuntu/releases/24.04/release/kubuntu-24.04-desktop-amd64.iso.torrent
+# Xubuntu
+# https://cdimage.ubuntu.com/xubuntu/releases/24.04/release/xubuntu-24.04-desktop-amd64.iso.torrent
+# Lubuntu
+# https://cdimage.ubuntu.com/lubuntu/releases/24.04/release/lubuntu-24.04-desktop-amd64.iso.torrent
+# Ubuntu MATE
+# https://cdimage.ubuntu.com/ubuntu-mate/releases/24.04/release/ubuntu-mate-24.04-desktop-amd64.iso.torrent
+# Ubuntu Budgie
+# https://cdimage.ubuntu.com/ubuntu-budgie/releases/24.04/release/ubuntu-budgie-24.04-desktop-amd64.iso.torrent
+
+# ===== 想做种更多 Ubuntu 镜像？参考 =====
+# 完整列表：    http://releases.ubuntu.com/
+# 老 release：  http://old-releases.ubuntu.com/releases/
+# flavors：     http://cdimage.ubuntu.com/
+# 直接下载 .torrent 放到 ../watch/ 也可以

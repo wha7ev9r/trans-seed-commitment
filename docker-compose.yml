@@ -36,7 +36,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'code=$(curl -s -u "$$USER:$$PASS" -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$code" = 200 ] || [ "$code" = 409 ]',
+          'code=$$(curl -s -u "$$USER:$$PASS" -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$$code" = 200 ] || [ "$$code" = 409 ]',
         ]
       interval: 30s
       timeout: 5s
@@ -55,6 +55,7 @@ services:
   quota-guard:
     build: ./quota-guard
     image: trans-commitment/quota-guard:1.0.0
+    pull_policy: build
     container_name: trans-commitment-quota-guard
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"

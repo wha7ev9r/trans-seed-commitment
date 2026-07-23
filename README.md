@@ -562,7 +562,7 @@ trans-commitment/
 └── quota-guard/state/        # 配额持久化 JSON（.gitignored）
 ```
 
-vnStat 数据使用 Compose 命名卷 `vnstat-data`，采集容器不开 HTTP，查询容器只在 Compose 内网监听 8685。
+vnStat 数据存放在项目目录 `./vnstat-data/` 下，采集容器不开 HTTP，查询容器只在 Compose 内网监听 8685。
 
 ---
 
@@ -585,9 +585,10 @@ docker compose restart
 # 运行 quota-guard 回归测试
 python -m unittest discover -s quota-guard/tests -v
 
-# 重建容器并删除 vnstat-data 命名卷
-# downloads、Transmission 配置和 quota-guard 状态是 bind mount，不会被删除
-docker compose down -v
+# 完全重建（所有运行时数据在项目目录内，手动清理即可）
+docker compose down
+# 如需清空重建：
+#   rm -rf ./transmission/config ./quota-guard/state ./vnstat-data
 bash setup.sh
 docker compose up -d
 ```

@@ -107,7 +107,7 @@ services:
       - HTTP_PORT=0
       - RUN_VNSTATD=1
     volumes:
-      - vnstat-data:/var/lib/vnstat
+      - ./vnstat-data:/var/lib/vnstat
 
   # 独立 HTTP 容器只加入 Compose 内网，避免 8685 暴露到宿主机。
   vnstat-http:
@@ -123,10 +123,7 @@ services:
       - HTTP_BIND=0.0.0.0
       - RUN_VNSTATD=0
     volumes:
-      - vnstat-data:/var/lib/vnstat:ro
+      - ./vnstat-data:/var/lib/vnstat:ro
 
 # 网络声明（默认 bridge 即可，P2P 端口走 host 映射）
 # transmission 容器需要 P2P 端口公网可达，上面 ports 已映射
-
-volumes:
-  vnstat-data:

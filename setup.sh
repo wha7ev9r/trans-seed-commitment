@@ -86,7 +86,7 @@ else
 fi
 
 # ---- 3. Directories ----
-mkdir -p ./downloads ./watch ./transmission/config ./quota-guard/state
+mkdir -p ./downloads ./watch ./transmission/config ./quota-guard/state ./vnstat-data
 
 PUID_VALUE="$(sed -n 's/^PUID=//p' .env | tail -n 1)"
 PGID_VALUE="$(sed -n 's/^PGID=//p' .env | tail -n 1)"
@@ -100,7 +100,7 @@ case "$PGID_VALUE" in
 esac
 
 if [ "$(id -u)" -eq 0 ]; then
-    chown -R "$PUID_VALUE:$PGID_VALUE" ./downloads ./watch ./transmission/config ./quota-guard/state
+    chown -R "$PUID_VALUE:$PGID_VALUE" ./downloads ./watch ./transmission/config ./quota-guard/state ./vnstat-data
 elif [ "$(id -u)" -ne "$PUID_VALUE" ]; then
     echo -e "${RED}[FAIL]${NC} .env PUID=$PUID_VALUE does not match current uid=$(id -u)"
     echo "       Run setup as root or set PUID/PGID to the deployment user's id values."

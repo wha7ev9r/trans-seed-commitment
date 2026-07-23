@@ -42,7 +42,7 @@ bash setup.sh
 # 3. 编辑 .env（改密码、配额、网卡名）
 vim .env
 
-# 4. 再次运行 setup（校验 Flood UI、目录权限并复制 settings.json）
+# 4. 再次运行 setup（校验 Flood UI、对齐目录权限）
 bash setup.sh
 
 # 5. 启动
@@ -90,14 +90,14 @@ Transmission 会通过 watch 目录自动检测到 .torrent 文件并开始下�
 
 ### 第一步：VPS 选型与系统要求
 
-| 项目 | 最低要求 | 推荐 |
-|------|----------|------|
-| 操作系统 | Ubuntu 22.04 / Debian 12 | Ubuntu 24.04 LTS |
-| CPU | 1 vCPU | 2 vCPU |
-| 内存 | 1 GB | 2 GB |
-| 磁盘 | 20 GB（单版 Ubuntu ISO ~6 GB） | 40 GB+（多版本做种） |
-| 带宽 | 100 Mbps | 1 Gbps（做种效率更高） |
-| 流量 | 月付 1 TB+ | 按 VPS 厂商配额设定 `MONTHLY_QUOTA_BYTES` |
+| 项目     | 最低要求                       | 推荐                                      |
+| -------- | ------------------------------ | ----------------------------------------- |
+| 操作系统 | Ubuntu 22.04 / Debian 12       | Ubuntu 24.04 LTS                          |
+| CPU      | 1 vCPU                         | 2 vCPU                                    |
+| 内存     | 1 GB                           | 2 GB                                      |
+| 磁盘     | 20 GB（单版 Ubuntu ISO ~6 GB） | 40 GB+（多版本做种）                      |
+| 带宽     | 100 Mbps                       | 1 Gbps（做种效率更高）                    |
+| 流量     | 月付 1 TB+                     | 按 VPS 厂商配额设定 `MONTHLY_QUOTA_BYTES` |
 
 > **关键**：VPS 必须允许 P2P 流量（端口 51413 TCP+UDP）。部分厂商禁止 BT，请确认 TOS。
 
@@ -120,6 +120,7 @@ docker compose version
 ```
 
 > 如果 `docker compose version` 报错，说明 Compose V2 插件未安装：
+>
 > ```bash
 > sudo apt install docker-compose-plugin -y
 > ```
@@ -146,6 +147,7 @@ sudo ufw status
 ```
 
 > **云厂商安全组**：除系统防火墙外，还需在云控制台（阿里云/腾讯云/AWS/Vultr 等）的安全组中放行：
+>
 > - `51413/TCP` + `51413/UDP`（P2P 做种，必须）
 > - `443/TCP`（HTTPS 面板，如配了反代）
 >
@@ -219,6 +221,7 @@ bash setup.sh
 ```
 
 这次会：
+
 - 下载 Flood for Transmission UI（~2 MB，带 SHA256 校验）
 - 创建 `downloads/`、`watch/`、`transmission/config/`、`quota-guard/state/` 目录
 - 复制 `transmission/settings.json` 模板到运行时目录
@@ -255,6 +258,7 @@ docker compose logs quota-guard --tail=10
 ```
 
 如果 quota-guard 显示 `unhealthy`，检查：
+
 ```bash
 docker compose logs quota-guard --tail=30
 # 常见原因：Transmission 还没 healthy（等 30 秒再看）
@@ -284,6 +288,7 @@ cd ubuntu-torrents && bash fetch.sh
 ```
 
 输出示例：
+
 ```
 [GET  ] ubuntu-24.04.4-desktop-amd64.iso.torrent
         -> saved
@@ -327,15 +332,15 @@ sudo openresty -t && sudo systemctl reload openresty
 
 ### 常见问题排查
 
-| 症状 | 原因 | 解决 |
-|------|------|------|
-| 种子状态一直是「下载中」但速度为 0 | P2P 端口未放行 | 检查防火墙 + 安全组是否放行 51413 TCP+UDP |
-| 面板显示「Transmission 连接异常」 | Transmission 容器未启动或 RPC 认证失败 | `docker compose logs transmission` 查看；确认 `.env` 密码正确 |
-| quota-guard 一直 unhealthy | Transmission 还没通过健康检查 | 等 30 秒；或 `docker compose restart quota-guard` |
-| Flood UI 白屏 | Flood UI 未下载成功 | 重新运行 `bash setup.sh`；检查网络是否能访问 GitHub |
-| vnstat 流量显示 `--` | 网卡名不对 | `ip link` 确认主网卡名，修改 `.env` 的 `VNSTAT_INTERFACE`，然后 `docker compose restart` |
-| 权限错误 / Permission denied | PUID/PGID 不匹配 | 确认 `.env` 的 PUID/PGID 与运行用户一致，重新 `bash setup.sh` |
-| 配额到了但种子没停 | 安全余量计算 | 实际停止线 = 配额 - min(1GiB, 配额×10%)；检查日志 `docker compose logs quota-guard` |
+| 症状                               | 原因                                   | 解决                                                                                     |
+| ---------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 种子状态一直是「下载中」但速度为 0 | P2P 端口未放行                         | 检查防火墙 + 安全组是否放行 51413 TCP+UDP                                                |
+| 面板显示「Transmission 连接异常」  | Transmission 容器未启动或 RPC 认证失败 | `docker compose logs transmission` 查看；确认 `.env` 密码正确                            |
+| quota-guard 一直 unhealthy         | Transmission 还没通过健康检查          | 等 30 秒；或 `docker compose restart quota-guard`                                        |
+| Flood UI 白屏                      | Flood UI 未下载成功                    | 重新运行 `bash setup.sh`；检查网络是否能访问 GitHub                                      |
+| vnstat 流量显示 `--`               | 网卡名不对                             | `ip link` 确认主网卡名，修改 `.env` 的 `VNSTAT_INTERFACE`，然后 `docker compose restart` |
+| 权限错误 / Permission denied       | PUID/PGID 不匹配                       | 确认 `.env` 的 PUID/PGID 与运行用户一致，重新 `bash setup.sh`                            |
+| 配额到了但种子没停                 | 安全余量计算                           | 实际停止线 = 配额 - min(1GiB, 配额×10%)；检查日志 `docker compose logs quota-guard`      |
 
 ---
 
@@ -537,7 +542,7 @@ trans-commitment/
 ├── README.md
 │
 ├── transmission/
-│   └── settings.json         # 加密/限速/白名单/blocklist/watch-dir 模板
+│   └── settings.json         # 推荐参考（linuxserver 镜像启动时自动生成；手动修改需先停容器）
 │
 ├── quota-guard/              # 月度配额守护 + 统一控制台
 │   ├── Dockerfile

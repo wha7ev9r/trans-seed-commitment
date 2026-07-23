@@ -3,11 +3,10 @@
 # trans-commitment 初始化脚本
 # 用法：bash setup.sh
 # 功能：
-#   1. 从 .env.example 创建 .env（若不存在）
-#   2. 下载 Flood for Transmission UI（若未下载）
-#   3. 创建运行时目录（downloads/watch/transmission config）
-#   4. 复制 Transmission settings.json 模板到运行时目录
-#   5. 赋予 fetch.sh 执行权限
+#  1. 从 .env.example 创建 .env（若不存在）
+#  2. 下载 Flood for Transmission UI（若未下载）
+#  3. 创建运行时目录并对齐 PUID/PGID 权限
+#  4. 赋予 fetch.sh 执行权限
 # ============================================================
 set -euo pipefail
 
@@ -110,18 +109,7 @@ fi
 chmod 750 ./quota-guard/state
 echo -e "${GREEN}[OK]${NC} Runtime directories created"
 
-# ---- 4. Transmission settings ----
-TEMPLATE_SETTINGS="./transmission/settings.json"
-RUNTIME_SETTINGS="./transmission/config/settings.json"
-
-if [ -f "$TEMPLATE_SETTINGS" ] && [ ! -f "$RUNTIME_SETTINGS" ]; then
-    cp "$TEMPLATE_SETTINGS" "$RUNTIME_SETTINGS"
-    echo -e "${GREEN}[OK]${NC} Transmission settings.json copied (encryption=2, blocklist, etc.)"
-elif [ -f "$RUNTIME_SETTINGS" ]; then
-    echo -e "${YELLOW}[!]${NC} runtime settings.json already exists (will NOT overwrite)"
-fi
-
-# ---- 5. fetch.sh permission ----
+# ---- 4. fetch.sh permission ----
 chmod +x ./ubuntu-torrents/fetch.sh 2>/dev/null || true
 
 # ---- Done ----

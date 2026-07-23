@@ -10,16 +10,16 @@ FROM python:${PYTHON_VERSION}-alpine
 LABEL org.opencontainers.image.source="trans-commitment"
 LABEL description="quota-guard: Transmission monthly quota monitor & unified control panel"
 
-RUN addgroup -S quard && adduser -S quard -G quard
+RUN addgroup -g 1000 -S guard && adduser -u 1000 -S guard -G guard
 
 COPY --from=builder /install /usr/local
 
 WORKDIR /app
 COPY guard.py .
 
-RUN mkdir -p /data && chown -R quard:quard /data /app
+RUN mkdir -p /data && chown -R guard:guard /data /app
 
-USER quard
+USER guard
 
 EXPOSE 9092
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

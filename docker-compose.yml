@@ -2,13 +2,13 @@
 # trans-commitment: 在 VPS 上做种 Ubuntu 镜像，回馈社区
 #  - 内嵌 Transmission + Flood for Transmission UI
 #  - 自带月度流量配额守护（quota-guard），超限自动暂停
-#  - vnstat 兜底监控 VPS 整体流量
+#  - vnstat 监控 VPS 指定网卡的整体流量
 #  - 一个面板（quota-guard:9092）整合：状态栏 + 种子管理
 # ============================================================
 services:
   # ---------------- Transmission ----------------
   transmission:
-    image: lscr.io/linuxserver/transmission:latest
+    image: lscr.io/linuxserver/transmission:4.1.3
     container_name: trans-commitment-transmission
     restart: unless-stopped
     environment:
@@ -17,6 +17,7 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
       - USER=${TRANSMISSION_USER}
       - PASS=${TRANSMISSION_PASS}
+      - WHITELIST=${TRANSMISSION_RPC_WHITELIST:-127.0.0.1,::1,10.*.*.*,172.*.*.*,192.168.*.*}
       - TRANSMISSION_WEB_HOME=/flood-ui
     volumes:
       - ./transmission/config:/config
@@ -30,12 +31,12 @@ services:
       - "51413:51413"
       - "51413:51413/udp"
     healthcheck:
-      # Transmission RPC returns 409 when the session id is missing; that still
-      # proves the daemon and RPC endpoint are alive.
+      # An authenticated RPC request returns 409 when the session id is missing;
+      # that still proves the daemon and RPC endpoint are alive.
       test:
         [
           "CMD-SHELL",
-          'code=$(curl -s -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$code" = 200 ] || [ "$code" = 409 ]',
+          'code=$(curl -s -u "$$USER:$$PASS" -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$code" = 200 ] || [ "$code" = 409 ]',
         ]
       interval: 30s
       timeout: 5s
@@ -45,7 +46,7 @@ services:
   # ---------------- quota-guard ----------------
   # 月度流量配额守护 + 统一控制面板
   # 职责：
-  #   1. 每分钟调 Transmission RPC session-stats，累计上传字节
+  #   1. 每 10 秒调 Transmission RPC session-stats，累计上传字节
   #   2. 每月 1 号 0 点自动重置累计
   #   3. 累计超配额 -> torrent-stop 暂停所有种子，月初恢复
   #   4. 反代 /torrents/ 和 /transmission/rpc 到 transmission:9091
@@ -53,12 +54,15 @@ services:
   #   6. REST API：/api/status /api/quota /api/pause /api/resume /api/history
   quota-guard:
     build: ./quota-guard
-    image: trans-commitment/quota-guard:latest
+    image: trans-commitment/quota-guard:1.0.0
     container_name: trans-commitment-quota-guard
     restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
     depends_on:
       transmission:
         condition: service_healthy
+      vnstat-http:
+        condition: service_started
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - TRANSMISSION_HOST=transmission
@@ -68,10 +72,11 @@ services:
       - QUOTA_USER=${QUOTA_USER}
       - QUOTA_PASS=${QUOTA_PASS}
       - MONTHLY_QUOTA_BYTES=${MONTHLY_QUOTA_BYTES:-1099511627776}
-      - VNSTAT_HOST=${VNSTAT_HOST:-host.docker.internal}
+      - CHECK_INTERVAL_SECONDS=${CHECK_INTERVAL_SECONDS:-10}
+      - QUOTA_SAFETY_MARGIN_BYTES=${QUOTA_SAFETY_MARGIN_BYTES:-1073741824}
+      - VNSTAT_HOST=vnstat-http
       - VNSTAT_PORT=8685
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - VNSTAT_INTERFACE=${VNSTAT_INTERFACE:-eth0}
     volumes:
       - ./quota-guard/state:/data
     ports:
@@ -90,24 +95,38 @@ services:
       retries: 3
       start_period: 15s
 
-  # ---------------- vnstat（VPS 流量兜底监控） ----------------
-  # 用途：监控 VPS 网卡总流量（不限于 Transmission）
-  # quota-guard 看板会同时展示 vnstat 数据，防止 VPS 因其他流量超额
-  # 用 --network=host 才能读到宿主机网卡数据
+  # ---------------- vnstat（VPS 流量监控） ----------------
+  # 采集容器使用 host 网络读取宿主机接口，但不启动 HTTP 服务。
   vnstat:
-    image: vergoh/vnstat:latest
+    image: vergoh/vnstat:2.13
     container_name: trans-commitment-vnstat
     restart: unless-stopped
     network_mode: host
     environment:
       - TZ=${TZ:-Asia/Shanghai}
-      - HTTP_PORT=8685
-      - EXTERNAL_INTERFACE=${VNSTAT_INTERFACE:-eth0}
+      - HTTP_PORT=0
+      - RUN_VNSTATD=1
     volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./vnstat:/var/lib/vnstat
-    # vnstat 不直接对外，只供 quota-guard 拉取数据
-    # 默认监听 127.0.0.1:8685
+      - vnstat-data:/var/lib/vnstat
+
+  # 独立 HTTP 容器只加入 Compose 内网，避免 8685 暴露到宿主机。
+  vnstat-http:
+    image: vergoh/vnstat:2.13
+    container_name: trans-commitment-vnstat-http
+    restart: unless-stopped
+    depends_on:
+      vnstat:
+        condition: service_started
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - HTTP_PORT=8685
+      - HTTP_BIND=0.0.0.0
+      - RUN_VNSTATD=0
+    volumes:
+      - vnstat-data:/var/lib/vnstat:ro
 
 # 网络声明（默认 bridge 即可，P2P 端口走 host 映射）
 # transmission 容器需要 P2P 端口公网可达，上面 ports 已映射
+
+volumes:
+  vnstat-data:

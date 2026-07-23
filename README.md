@@ -308,8 +308,10 @@ vnStat 数据使用 Compose 命名卷 `vnstat-data`，采集容器不开 HTTP，
 ## 维护与更新
 
 ```bash
-# 更新镜像
+# 更新镜像（Transmission / vnStat 等远程镜像）
 docker compose pull
+# 重建本地 quota-guard 镜像（代码变更后必须执行）
+docker compose build quota-guard
 docker compose up -d
 
 # 查看日志

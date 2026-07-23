@@ -16,6 +16,7 @@ def load_guard_module():
     class FakeFlask:
         def __init__(self, _name):
             self.config = {}
+            self.json = types.SimpleNamespace(ensure_ascii=True)
 
         def before_request(self, function):
             return function

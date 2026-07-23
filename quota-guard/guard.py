@@ -486,7 +486,7 @@ _scheduler.add_job(
 # Flask app
 # ======================================================================
 app = Flask(__name__)
-app.config["JSON_AS_ASCII"] = False
+app.json.ensure_ascii = False
 # Suppress static file routing in catch-all
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
@@ -1001,6 +1001,10 @@ async function togglePause() {
   try {
     const response = await fetch(url, {method:'POST', headers:{'X-CSRF-Token': CSRF_TOKEN}});
     if (response.status === 403) { location.reload(); return; }
+    if (response.status === 409) {
+      const d = await response.json().catch(() => ({}));
+      alert(d.error || '操作被拒绝：月度配额已超限，请先提高配额再恢复');
+    }
     await refresh();
   } finally {
     btn.disabled = false;
@@ -1098,12 +1102,17 @@ async function saveQuota() {
     input.reportValidity();
     return;
   }
-  const response = await fetch('/api/quota', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF_TOKEN}, body:JSON.stringify({bytes: Math.round(tib*TB)})});
-  if (response.status === 403) { location.reload(); return; }
-  if (!response.ok) return;
-  document.getElementById('editBlock').classList.add('hidden');
-  document.getElementById('btnEditQuota').classList.remove('hidden');
-  await refresh();
+  try {
+    const response = await fetch('/api/quota', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':CSRF_TOKEN}, body:JSON.stringify({bytes: Math.round(tib*TB)})});
+    if (response.status === 403) { location.reload(); return; }
+    if (!response.ok) { alert('配额修改失败，请重试'); return; }
+    document.getElementById('editBlock').classList.add('hidden');
+    document.getElementById('btnEditQuota').classList.remove('hidden');
+    await refresh();
+  } catch(e) {
+    alert('网络错误，配额修改失败');
+    console.error(e);
+  }
 }
 function cancelQuota() {
   document.getElementById('editBlock').classList.add('hidden');

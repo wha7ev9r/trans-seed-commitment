@@ -83,6 +83,262 @@ Transmission 会通过 watch 目录自动检测到 .torrent 文件并开始下�
 
 ---
 
+## VPS 完整部署指南（从零开始）
+
+> 本节面向第一次在 VPS 上部署的用户，覆盖从系统初始化到面板可访问的全流程。
+> 如果你已经熟悉 Docker，可以直接看上面的「快速开始」。
+
+### 第一步：VPS 选型与系统要求
+
+| 项目 | 最低要求 | 推荐 |
+|------|----------|------|
+| 操作系统 | Ubuntu 22.04 / Debian 12 | Ubuntu 24.04 LTS |
+| CPU | 1 vCPU | 2 vCPU |
+| 内存 | 1 GB | 2 GB |
+| 磁盘 | 20 GB（单版 Ubuntu ISO ~6 GB） | 40 GB+（多版本做种） |
+| 带宽 | 100 Mbps | 1 Gbps（做种效率更高） |
+| 流量 | 月付 1 TB+ | 按 VPS 厂商配额设定 `MONTHLY_QUOTA_BYTES` |
+
+> **关键**：VPS 必须允许 P2P 流量（端口 51413 TCP+UDP）。部分厂商禁止 BT，请确认 TOS。
+
+### 第二步：安装 Docker + Docker Compose
+
+```bash
+# 更新系统
+sudo apt update && sudo apt upgrade -y
+
+# 安装 Docker（官方一键脚本）
+curl -fsSL https://get.docker.com | sudo sh
+
+# 将当前用户加入 docker 组（免 sudo）
+sudo usermod -aG docker $USER
+newgrp docker   # 立即生效，或重新登录
+
+# 验证（需要 Docker 20.10+ 和 Compose V2）
+docker --version
+docker compose version
+```
+
+> 如果 `docker compose version` 报错，说明 Compose V2 插件未安装：
+> ```bash
+> sudo apt install docker-compose-plugin -y
+> ```
+
+### 第三步：配置防火墙
+
+```bash
+# 安装 UFW（Ubuntu 通常已预装）
+sudo apt install ufw -y
+
+# 放行 SSH（重要！否则断开连接）
+sudo ufw allow 22/tcp
+
+# 放行 P2P 做种端口（TCP + UDP）
+sudo ufw limit 51413/tcp
+sudo ufw limit 51413/udp
+
+# 如果要用 HTTPS 访问面板
+sudo ufw allow 443/tcp
+
+# 启用防火墙
+sudo ufw enable
+sudo ufw status
+```
+
+> **云厂商安全组**：除系统防火墙外，还需在云控制台（阿里云/腾讯云/AWS/Vultr 等）的安全组中放行：
+> - `51413/TCP` + `51413/UDP`（P2P 做种，必须）
+> - `443/TCP`（HTTPS 面板，如配了反代）
+>
+> **不要**放行 9091、9092、8685 到公网。
+
+### 第四步：克隆项目并初始化
+
+```bash
+# 克隆（替换为你的实际仓库地址）
+git clone https://github.com/YOUR_USER/trans-commitment.git
+cd trans-commitment
+
+# 第一次运行 setup.sh —— 创建 .env 后退出
+bash setup.sh
+# 输出：[OK] .env created from .env.example
+#       [!!] Please edit .env now ...
+```
+
+### 第五步：编辑 .env（必做）
+
+```bash
+vim .env   # 或 nano .env
+```
+
+**必须修改的项**：
+
+```bash
+# ① Transmission RPC 密码（Flood UI 登录用）
+TRANSMISSION_PASS=这里换成强随机密码至少20位
+
+# ② quota-guard 面板密码（控制台 Basic Auth）
+QUOTA_PASS=这里换成另一个强随机密码
+
+# ③ 网卡名（用 ip link 查看你的主网卡）
+VNSTAT_INTERFACE=eth0    # 常见：eth0 / ens3 / enp3s0
+```
+
+**可选调整**：
+
+```bash
+# 月度上传配额（字节），按 VPS 流量套餐设
+# 1 TiB = 1099511627776
+# 500 GB = 536870912000
+MONTHLY_QUOTA_BYTES=1099511627776
+
+# 容器进程 UID/GID（与当前用户一致即可，默认 1000）
+PUID=1000
+PGID=1000
+```
+
+生成强密码的方法：
+
+```bash
+openssl rand -base64 24
+# 输出示例：k3Jx9Qw7mNpR2sT5vY8zA1bC4dF6gH0i
+```
+
+查看网卡名：
+
+```bash
+ip link
+# 输出示例：
+# 1: lo: ...
+# 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> ...   ← 这个
+```
+
+### 第六步：再次运行 setup.sh
+
+```bash
+bash setup.sh
+```
+
+这次会：
+- 下载 Flood for Transmission UI（~2 MB，带 SHA256 校验）
+- 创建 `downloads/`、`watch/`、`transmission/config/`、`quota-guard/state/` 目录
+- 复制 `transmission/settings.json` 模板到运行时目录
+- 对齐文件权限
+
+看到 `Setup complete!` 即成功。
+
+### 第七步：启动所有服务
+
+```bash
+docker compose up -d
+```
+
+首次启动会构建 quota-guard 镜像（~1 分钟），之后秒启。
+
+### 第八步：验证服务状态
+
+```bash
+# 查看所有容器状态（应全部 running / healthy）
+docker compose ps
+
+# 预期输出：
+# NAME                              STATUS
+# trans-commitment-transmission     running (healthy)
+# trans-commitment-quota-guard      running (healthy)
+# trans-commitment-vnstat           running
+# trans-commitment-vnstat-http      running
+
+# 查看 quota-guard 日志（确认配额检查正常）
+docker compose logs quota-guard --tail=10
+
+# 预期看到类似：
+# INFO quota-guard: uploaded 0.00 GB / 1099.51 GB (0.0%), paused=False
+```
+
+如果 quota-guard 显示 `unhealthy`，检查：
+```bash
+docker compose logs quota-guard --tail=30
+# 常见原因：Transmission 还没 healthy（等 30 秒再看）
+```
+
+### 第九步：首次访问面板（SSH 隧道）
+
+9092 端口只绑定 `127.0.0.1`，公网不可直接访问。首次配置时用 SSH 隧道：
+
+```bash
+# 在你的本地电脑执行（不是 VPS）
+ssh -L 9092:127.0.0.1:9092 user@你的VPS-IP
+```
+
+然后浏览器打开 `http://localhost:9092`：
+
+1. 弹出 Basic Auth → 输入 `.env` 中的 `QUOTA_USER` / `QUOTA_PASS`
+2. 看到顶部状态栏 + 下方 Flood UI iframe
+3. Flood UI 会要求登录 → 输入 `TRANSMISSION_USER` / `TRANSMISSION_PASS`
+
+> 确认面板正常后，按下面的「OpenResty 反向代理」配置 HTTPS 公网访问。
+
+### 第十步：导入 Ubuntu 种子开始做种
+
+```bash
+cd ubuntu-torrents && bash fetch.sh
+```
+
+输出示例：
+```
+[GET  ] ubuntu-24.04.4-desktop-amd64.iso.torrent
+        -> saved
+[GET  ] ubuntu-24.04.4-live-server-amd64.iso.torrent
+        -> saved
+...
+Summary:  ok=9  skipped=0  failed=0
+```
+
+Transmission 在几秒内自动检测 `watch/` 目录中的 `.torrent` 文件 → 开始下载 → 下载完成后自动做种。
+
+在 Flood UI 中可以实时看到下载/做种进度。
+
+### 第十一步：配置 HTTPS 反向代理（生产必做）
+
+详见下方「OpenResty 反向代理」章节。最简方案：
+
+```bash
+# 安装 OpenResty
+sudo apt install -y openresty
+
+# 申请证书（用 acme.sh 或 certbot）
+# 将证书放到 /etc/ssl/ 下
+
+# 配置反代（见下方完整 nginx 配置）
+sudo vim /etc/openresty/conf.d/seed.conf
+sudo openresty -t && sudo systemctl reload openresty
+```
+
+配好后通过 `https://seed.your-domain.com` 访问面板，不再需要 SSH 隧道。
+
+### 部署完成后的检查清单
+
+- [ ] `docker compose ps` 四个容器全部 running
+- [ ] 面板状态栏显示「运行正常」（绿色圆点）
+- [ ] Flood UI 能看到种子列表（下载中/做种中）
+- [ ] 状态栏「VPS 本月总流量」有数值（vnstat 需要几分钟采集）
+- [ ] 防火墙/安全组已放行 51413 TCP+UDP
+- [ ] `.env` 密码已改为强随机值
+- [ ] （可选）HTTPS 反代已配置
+
+### 常见问题排查
+
+| 症状 | 原因 | 解决 |
+|------|------|------|
+| 种子状态一直是「下载中」但速度为 0 | P2P 端口未放行 | 检查防火墙 + 安全组是否放行 51413 TCP+UDP |
+| 面板显示「Transmission 连接异常」 | Transmission 容器未启动或 RPC 认证失败 | `docker compose logs transmission` 查看；确认 `.env` 密码正确 |
+| quota-guard 一直 unhealthy | Transmission 还没通过健康检查 | 等 30 秒；或 `docker compose restart quota-guard` |
+| Flood UI 白屏 | Flood UI 未下载成功 | 重新运行 `bash setup.sh`；检查网络是否能访问 GitHub |
+| vnstat 流量显示 `--` | 网卡名不对 | `ip link` 确认主网卡名，修改 `.env` 的 `VNSTAT_INTERFACE`，然后 `docker compose restart` |
+| 权限错误 / Permission denied | PUID/PGID 不匹配 | 确认 `.env` 的 PUID/PGID 与运行用户一致，重新 `bash setup.sh` |
+| 配额到了但种子没停 | 安全余量计算 | 实际停止线 = 配额 - min(1GiB, 配额×10%)；检查日志 `docker compose logs quota-guard` |
+
+---
+
 ## OpenResty 反向代理（推荐）
 
 > Port 9092 is **not** exposed to the internet.

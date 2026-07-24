@@ -53,21 +53,16 @@ docker compose ps
 docker compose logs quota-guard | tail -20
 ```
 
-### 导入 Ubuntu 种子
+### 导入种子
 
 ```bash
-cd ubuntu-torrents && bash fetch.sh
+# 首次导入或容器重建后恢复
+cd ubuntu-torrents && bash reload.sh
 ```
 
-Transmission 会通过 watch 目录自动检测到 .torrent 文件并开始下载 ➔ 做种。
+Transmission 通过 watch 目录自动检测 .torrent 并开始下载 → 做种。
 
-> `list.txt` 默认包含 Ubuntu 24.04 / 22.04 / 25.10 / 20.04 的 desktop + server 各版本。  
-> **想做种其他文件？**
->
-> - 在 Flood UI 里手动添加任意 .torrent URL 或磁力链接
-> - 复制 `list.txt` 加上你自己的 .torrent 链接，再 run `fetch.sh`
-> - 把你自己的 .torrent 文件直接丢进 `watch/` 目录
-> - 用 Transmission 创建自己的种子：Flood UI → 添加种子 → 选择本地文件 → 指定 tracker URL
+> 编辑 `seed-list.txt` 增减你想要的发行版，每行一个 `.torrent` URL。容器重建后种子丢失，再跑一次 `reload.sh` 即可全部恢复。
 
 ### 访问面板
 

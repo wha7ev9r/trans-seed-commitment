@@ -415,7 +415,7 @@ ufw limit 51413/udp
 1. 状态栏里点配额的 ✏️ 按钮
 2. 输入新配额（单位：TiB，支持小数，如 `2.5` = 2.5 TiB）
 3. 点 OK
-4. 接近安全线自动暂停（默认检测周期 ≤ 10 秒）
+4. 接近安全线自动暂停（默认检测周期 ≤ 60 秒）
 
 > 为降低轮询停止期间超额的风险，默认在配额前预留 1 GiB，最多预留配额的 10%。这仍是应用层保护，不是网络层硬限额。
 
@@ -442,7 +442,7 @@ ufw limit 51413/udp
 | `QUOTA_GUARD_PORT`           | `9092`                   | quota-guard 绑定端口（本地）                                                      |
 | P2P 端口                     | `51413`                  | 固定值；如需改端口，需同步改 `docker-compose.yml` 和 `transmission/settings.json` |
 | `MONTHLY_QUOTA_BYTES`        | `1099511627776`（1 TiB） | 月度配额（字节）                                                                  |
-| `CHECK_INTERVAL_SECONDS`     | `10`                     | 配额检查周期（秒）                                                                |
+| `CHECK_INTERVAL_SECONDS`     | `60`                     | 配额检查周期（秒）                                                                |
 | `QUOTA_SAFETY_MARGIN_BYTES`  | `1073741824`（1 GiB）    | 配额前安全余量，最多按配额的 10% 计算                                             |
 | `PUID` / `PGID`              | `1000`                   | 容器进程 UID/GID                                                                  |
 | `VNSTAT_INTERFACE`           | `eth0`                   | 宿主机主网卡名（`ip link` 查看，面板按此接口筛选）                                |

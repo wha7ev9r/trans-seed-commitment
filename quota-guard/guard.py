@@ -45,7 +45,7 @@ except ZoneInfoNotFoundError:
     TZ_ERROR = f"unknown TZ value: {TZ_NAME}"
 
 STATE_FILE = "/data/state.json"
-CHECK_INTERVAL_SECONDS = int(os.getenv("CHECK_INTERVAL_SECONDS", "10"))
+CHECK_INTERVAL_SECONDS = int(os.getenv("CHECK_INTERVAL_SECONDS", "60"))
 QUOTA_SAFETY_MARGIN_BYTES = int(os.getenv("QUOTA_SAFETY_MARGIN_BYTES", "1073741824"))
 
 RPC_URL = f"http://{TRANSMISSION_HOST}:{TRANSMISSION_PORT}/transmission/rpc"

@@ -44,7 +44,7 @@ services:
   # ---------------- quota-guard ----------------
   # 月度流量配额守护 + 统一控制面板
   # 职责：
-  #   1. 每 10 秒调 Transmission RPC session-stats，累计上传字节
+  #   1. 每分钟调 Transmission RPC session-stats，累计上传字节
   #   2. 每月 1 号 0 点自动重置累计
   #   3. 累计超配额 -> torrent-stop 暂停所有种子，月初恢复
   #   4. 反代 /torrents/ 和 /transmission/rpc 到 transmission:9091
@@ -71,7 +71,7 @@ services:
       - QUOTA_USER=${QUOTA_USER}
       - QUOTA_PASS=${QUOTA_PASS}
       - MONTHLY_QUOTA_BYTES=${MONTHLY_QUOTA_BYTES:-1099511627776}
-      - CHECK_INTERVAL_SECONDS=${CHECK_INTERVAL_SECONDS:-10}
+      - CHECK_INTERVAL_SECONDS=${CHECK_INTERVAL_SECONDS:-60}
       - QUOTA_SAFETY_MARGIN_BYTES=${QUOTA_SAFETY_MARGIN_BYTES:-1073741824}
       - VNSTAT_HOST=vnstat-http
       - VNSTAT_PORT=8685

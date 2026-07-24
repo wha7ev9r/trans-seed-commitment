@@ -682,9 +682,9 @@ def api_history():
 # Reverse proxy: forward to Transmission
 # ======================================================================
 # All paths NOT handled by Flask are proxied to transmission:9091
-#   /torrents/xxx  ->  http://transmission:9091/xxx      (strip /torrents prefix)
-#   /transmission/* ->  http://transmission:9091/transmission/*  (no strip)
-#   other paths     ->  http://transmission:9091/other          (no strip)
+#   /torrents/*  ->  /transmission/web/*   (Flood UI, mapped to Transmission web root)
+#   /transmission/* -> /transmission/*      (RPC, forwarded as-is)
+#   other paths     -> other paths          (catch-all)
 
 PROXY_EXCLUDED_HEADERS = frozenset(
     {
@@ -707,12 +707,10 @@ def proxy_to_transmission(target_path: str) -> Response:
 
     # Strip /torrents/ prefix for Flood UI static resources
     actual_path = target_path
-    if target_path.startswith("/torrents/"):
-        actual_path = target_path[
-            len("/torrents/") - 1 :
-        ]  # keep leading /, remove /torrents
-    elif target_path == "/torrents":
-        actual_path = "/"
+    if target_path == "/torrents" or target_path == "/torrents/":
+        actual_path = "/transmission/web/"
+    elif target_path.startswith("/torrents/"):
+        actual_path = "/transmission/web/" + target_path[len("/torrents/") :]
     upstream_url = f"http://{TRANSMISSION_HOST}:{TRANSMISSION_PORT}{actual_path}"
 
     # Build headers

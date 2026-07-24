@@ -187,43 +187,53 @@ def _rpc_session() -> requests.Session:
 def rpc_call(method: str, arguments: dict | None = None) -> dict | None:
     """Call a Transmission RPC method, return the `arguments` dict or None."""
     global _session_id, _last_rpc_error
-    with RPC_LOCK:
-        payload = {"method": method, "arguments": arguments or {}}
-        headers = {"Content-Type": "application/json"}
-        if _session_id:
-            headers["X-Transmission-Session-Id"] = _session_id
+    payload = {"method": method, "arguments": arguments or {}}
+    headers = {"Content-Type": "application/json"}
 
-        sess = _rpc_session()
+    with RPC_LOCK:
+        local_id = _session_id
+    if local_id:
+        headers["X-Transmission-Session-Id"] = local_id
+
+    sess = _rpc_session()
+    try:
+        resp = sess.post(RPC_URL, json=payload, headers=headers, timeout=15)
+    except requests.RequestException as exc:
+        with RPC_LOCK:
+            _last_rpc_error = str(exc)
+        return None
+
+    if resp.status_code == 409:
+        new_sid = resp.headers.get("X-Transmission-Session-Id", "")
+        with RPC_LOCK:
+            _session_id = new_sid
+        headers["X-Transmission-Session-Id"] = new_sid
         try:
             resp = sess.post(RPC_URL, json=payload, headers=headers, timeout=15)
         except requests.RequestException as exc:
-            _last_rpc_error = str(exc)
-            return None
-
-        if resp.status_code == 409:
-            _session_id = resp.headers.get("X-Transmission-Session-Id", "")
-            headers["X-Transmission-Session-Id"] = _session_id
-            try:
-                resp = sess.post(RPC_URL, json=payload, headers=headers, timeout=15)
-            except requests.RequestException as exc:
+            with RPC_LOCK:
                 _last_rpc_error = str(exc)
-                return None
+            return None
 
-        if not resp.ok:
+    if not resp.ok:
+        with RPC_LOCK:
             _last_rpc_error = f"HTTP {resp.status_code}: {resp.text[:200]}"
-            return None
+        return None
 
-        try:
-            data = resp.json()
-        except ValueError as exc:
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        with RPC_LOCK:
             _last_rpc_error = f"invalid RPC JSON response: {exc}"
-            return None
-        if data.get("result") != "success":
+        return None
+    if data.get("result") != "success":
+        with RPC_LOCK:
             _last_rpc_error = data.get("result", "unknown rpc error")
-            return None
+        return None
 
+    with RPC_LOCK:
         _last_rpc_error = ""
-        return data.get("arguments", {})
+    return data.get("arguments", {})
 
 
 def get_session_stats() -> dict | None:

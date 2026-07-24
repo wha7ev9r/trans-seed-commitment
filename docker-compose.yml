@@ -59,7 +59,7 @@ services:
     user: "${PUID:-1000}:${PGID:-1000}"
     depends_on:
       transmission:
-        condition: service_healthy
+        condition: service_started
       vnstat-http:
         condition: service_started
     environment:

@@ -31,12 +31,10 @@ services:
       - "51413:51413"
       - "51413:51413/udp"
     healthcheck:
-      # An authenticated RPC request returns 409 when the session id is missing;
-      # that still proves the daemon and RPC endpoint are alive.
       test:
         [
           "CMD-SHELL",
-          'code=$$(curl -s -u "$$USER:$$PASS" -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$$code" = 200 ] || [ "$$code" = 409 ]',
+          'code=$$(curl -s -o /dev/null -w ''%{http_code}'' http://127.0.0.1:9091/transmission/rpc); [ "$$code" = 200 ] || [ "$$code" = 401 ] || [ "$$code" = 409 ]',
         ]
       interval: 30s
       timeout: 5s

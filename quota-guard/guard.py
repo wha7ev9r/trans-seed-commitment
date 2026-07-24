@@ -697,6 +697,7 @@ PROXY_EXCLUDED_HEADERS = frozenset(
         "trailer",
         "content-length",
         "accept-encoding",
+        "authorization",
     }
 )
 

@@ -85,6 +85,10 @@ else
     echo -e "${GREEN}[OK]${NC} Flood UI already present at $FLOOD_DIR"
 fi
 
+# Flood UI looks for config.json on startup; an empty file suppresses
+# the harmless "Couldn't read '/flood-ui/config.json'" Transmission log.
+touch "$FLOOD_DIR/config.json" 2>/dev/null || true
+
 # ---- 3. Directories ----
 mkdir -p ./downloads ./watch ./transmission/config ./quota-guard/state ./vnstat-data
 

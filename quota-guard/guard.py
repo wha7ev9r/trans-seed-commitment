@@ -759,6 +759,8 @@ def proxy_to_transmission(target_path: str) -> Response:
             "keep-alive",
             "content-encoding",
             "content-length",
+            "x-frame-options",
+            "content-security-policy",
         }:
             response_headers[k] = v
 

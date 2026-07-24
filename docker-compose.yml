@@ -105,6 +105,8 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
       - HTTP_PORT=0
       - RUN_VNSTATD=1
+      - EXCLUDE_PATTERN=^(docker|br-|veth|lo$)
+      - VNSTAT_Interface=${VNSTAT_INTERFACE:-eth0}
     volumes:
       - ./vnstat-data:/var/lib/vnstat
 

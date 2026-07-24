@@ -552,8 +552,10 @@ trans-commitment/
 │       └── test_guard.py     # 配额状态机与 vnStat 解析回归测试
 │
 ├── ubuntu-torrents/
-│   ├── list.txt              # 官方 .torrent 直链清单
-│   └── fetch.sh              # 一键下载到 watch/
+│   ├── list.txt              # 官方 .torrent 直链清单（仅供参考）
+│   ├── seed-list.txt          # 做种清单 — reload.sh 从这里读取，容器重建后可恢复
+│   ├── fetch.sh               # 一键下载到 watch/
+│   └── reload.sh              # 容器重建/磁盘清理后重新拉取种子
 │
 ├── flood-ui/                 # Flood for Transmission UI（setup.sh 下载，.gitignored）
 ├── watch/                    # 监控目录（.gitignored）

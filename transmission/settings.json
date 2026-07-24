@@ -11,7 +11,7 @@
   "blocklist-enabled": true,
   "blocklist-url": "https://raw.githubusercontent.com/NaifMehanna/Blocklist/main/level1.gz",
   "cache-size-mb": 64,
-  "default-trackers": [],
+  "default-trackers": "udp://tracker.opentrackr.org:1337/announce\n\nudp://open.stealth.si:80/announce\n\nudp://tracker.torrent.eu.org:451/announce\n\nudp://tracker-udp.gbitt.info:80/announce\n\nudp://explodie.org:6969/announce\n\nudp://opentracker.i2p.rocks:6969/announce\n\nhttps://opentracker.i2p.rocks:443/announce\n\nudp://open.demonii.com:1337/announce",
   "dht-enabled": true,
   "download-dir": "/downloads",
   "download-limit": 100,

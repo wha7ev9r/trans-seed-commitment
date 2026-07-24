@@ -290,6 +290,22 @@ def session_set_speed(up_kb: int | None = None, down_kb: int | None = None) -> b
     return result is not None
 
 
+def _get_session_uploaded(stats: dict) -> int:
+    val = stats.get("uploadedBytes")
+    if val is not None:
+        return int(val)
+    current_stats = stats.get("current-stats", {})
+    return int(current_stats.get("uploadedBytes", 0))
+
+
+def _get_session_downloaded(stats: dict) -> int:
+    val = stats.get("downloadedBytes")
+    if val is not None:
+        return int(val)
+    current_stats = stats.get("current-stats", {})
+    return int(current_stats.get("downloadedBytes", 0))
+
+
 # ======================================================================
 # Quota tracking logic
 # ======================================================================
@@ -299,7 +315,7 @@ def check_quota() -> dict:
     if stats is None:
         return {"status": "rpc_error", "error": _last_rpc_error}
 
-    current_total = max(int(stats.get("uploadedBytes", 0)), 0)
+    current_total = max(_get_session_uploaded(stats), 0)
     torrents = get_torrents()
     if torrents is None:
         return {"status": "rpc_error", "error": _last_rpc_error}
@@ -572,8 +588,8 @@ def api_status():
     vnstat_data = get_vnstat_data()
     vnstat_total = get_vnstat_monthly_total(vnstat_data)
 
-    session_up = stats.get("uploadedBytes", 0) if stats else 0
-    session_down = stats.get("downloadedBytes", 0) if stats else 0
+    session_up = _get_session_uploaded(stats) if stats else 0
+    session_down = _get_session_downloaded(stats) if stats else 0
     torrents_result = get_torrents() if stats is not None else None
     torrents = torrents_result or []
     active = sum(1 for t in torrents if t.get("rateUpload", 0) > 0)
